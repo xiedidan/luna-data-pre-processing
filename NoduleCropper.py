@@ -184,5 +184,36 @@ class NoduleCropper(object):
         nodules = pool.map(self.cropAllNoduleForMhdProcessor, self.annotationMhdFileList)
         if None in nodules:
             nodules.remove(None)
-
         return nodules
+
+    def resampleAndCreateGroundTruth(self):
+        samples = []
+        for file in enumerate(tqdm(self.annotationMhdFileList)):
+            filename = file[1]
+
+            if filename not in self.annotationDf.file.values:
+                print("Mhd file: " + filename + " is not found in annotations.csv.")
+                continue
+
+            # load image
+            rawImage = sitk.ReadImage(filename)
+            worldOrigin = np.array(rawImage.GetOrigin())[::-1]
+            oldSpacing = np.array(rawImage.GetSpacing())[::-1]
+
+            #  resample image
+            image, spacing = self.resample(sitk.GetArrayFromImage(rawImage), oldSpacing)
+            image = np.rint(image)
+            image = np.array(image, dtype=np.int16)
+
+            # init ground truth image
+            groundTruthImage = np.zeros(image.shape, dtype=np.int16)
+
+            # fill groundTruth
+            fileNodules = self.annotationDf[self.annotationDf.file == file]
+            for idx, nodule in fileNodules.iterrows():
+                groundTruthImage = self.fillGroundTruthImage(groundTruthImage, nodule, worldOrigin, spacing)
+
+            sample = [image, groundTruthImage]
+            samples.append(sample)
+        return samples
+    
