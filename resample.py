@@ -1,10 +1,8 @@
 # -*- coding:utf-8 -*-
 
-from tqdm import tqdm
-
 from NoduleCropper import NoduleCropper
-from NoduleSerializer import NoduleSerializer
 
-dataPath = "../tianchi/data/test1/"
+dataPath = "d:/project/tianchi/data/"
 
 cropper = NoduleCropper(dataPath)
+cropper.resampleAndCreateGroundTruth()

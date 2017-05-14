@@ -12,6 +12,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 from Logger import Logger
 import sys
 import Utility as util
+from NoduleSerializer import NoduleSerializer
 
 class NoduleCropper(object):
     # constructor
@@ -108,7 +109,22 @@ class NoduleCropper(object):
         lowerBound, upperBound = self.getBox(noduleCenter, voxelSize)
         # print("cropSingleNodule(): noduleWorldCenter: {0}, worldOrigin: {1}, lower: {2}, upper: {3}".format(noduleWorldCenter, worldOrigin, lowerBound, upperBound))
 
-        noduleCrop = image[lowerBound[0]:upperBound[0], lowerBound[1]:upperBound[1], lowerBound[2]:upperBound[2]]
+        noduleCrop = np.zeros((size, size, size), dtype = np.int16)
+        imageShape = image.shape
+        cropLowerBound = [0, 0, 0]
+        cropUpperBound = [size, size, size]
+        for i in range(3):
+            if lowerBound[i] < 0:
+                cropLowerBound[i] = np.absolute(lowerBound[i])
+                lowerBound[i] = 0
+            if upperBound[i] > imageShape[i]:
+                cropUpperBound[i] = cropUpperBound[i] - (upperBound[i] - imageShape[i])
+                upperBound[i] = imageShape[i]
+
+        # print("cropLowerBound: {0}, cropUpperBound: {1}, lowerBound: {2}, upperBound: {3}".format(cropLowerBound, cropUpperBound, lowerBound, upperBound))
+        # print(noduleCrop[cropLowerBound[0]:cropUpperBound[0], cropLowerBound[1]:cropUpperBound[1], cropLowerBound[2]:cropUpperBound[2]].shape)
+        # print(image[lowerBound[0]:upperBound[0], lowerBound[1]:upperBound[1], lowerBound[2]:upperBound[2]].shape)
+        noduleCrop[cropLowerBound[0]:cropUpperBound[0], cropLowerBound[1]:cropUpperBound[1], cropLowerBound[2]:cropUpperBound[2]] = image[lowerBound[0]:upperBound[0], lowerBound[1]:upperBound[1], lowerBound[2]:upperBound[2]]
         return noduleCrop, minusFlag
 
     def cropFileNodule(self, file, size):
@@ -166,6 +182,41 @@ class NoduleCropper(object):
             self.progressBar.update(1)
             return fileNodules
 
+    def resampleAndCreateGroundTruthProcessor(self, filename):
+        if filename not in self.annotationDf.file.values:
+            print("Mhd file: " + filename + " is not found in annotations.csv.")
+            self.progressBar.update(1)
+            return None
+
+        # load image
+        rawImage = sitk.ReadImage(filename)
+        worldOrigin = np.array(rawImage.GetOrigin())[::-1]
+        oldSpacing = np.array(rawImage.GetSpacing())[::-1]
+
+        #  resample image
+        image, spacing = self.resample(sitk.GetArrayFromImage(rawImage), oldSpacing)
+        image = np.rint(image)
+        image = np.array(image, dtype=np.int16)
+
+        # init ground truth image
+        groundTruthImage = np.zeros(image.shape, dtype=np.int16)
+
+        # fill groundTruth
+        fileNodules = self.annotationDf[self.annotationDf.file == filename]
+        for idx, nodule in fileNodules.iterrows():
+            groundTruthImage = self.fillGroundTruthImage(groundTruthImage, nodule, worldOrigin, spacing)
+
+        sample = {}
+        sample["seriesuid"] = os.path.basename(filename).split(".")[0]
+        sample["image"] = image
+        sample["groundTruth"] = groundTruthImage
+        # print("sample id: {0}, shape: {1}, spacing: {2}".format(sample["seriesuid"], sample["image"].shape, spacing))
+
+        serializer = NoduleSerializer(self.dataPath)
+        serializer.writeToNpy("npy/", sample["seriesuid"], sample["image"], sample["groundTruth"])
+
+        self.progressBar.update(1)
+
     # interface
     def cropAllNodule(self):
         nodules = []
@@ -187,33 +238,8 @@ class NoduleCropper(object):
         return nodules
 
     def resampleAndCreateGroundTruth(self):
-        samples = []
-        for file in enumerate(tqdm(self.annotationMhdFileList)):
-            filename = file[1]
+        pool = ThreadPool()
+        pool.map(self.resampleAndCreateGroundTruthProcessor, self.annotationMhdFileList)
 
-            if filename not in self.annotationDf.file.values:
-                print("Mhd file: " + filename + " is not found in annotations.csv.")
-                continue
-
-            # load image
-            rawImage = sitk.ReadImage(filename)
-            worldOrigin = np.array(rawImage.GetOrigin())[::-1]
-            oldSpacing = np.array(rawImage.GetSpacing())[::-1]
-
-            #  resample image
-            image, spacing = self.resample(sitk.GetArrayFromImage(rawImage), oldSpacing)
-            image = np.rint(image)
-            image = np.array(image, dtype=np.int16)
-
-            # init ground truth image
-            groundTruthImage = np.zeros(image.shape, dtype=np.int16)
-
-            # fill groundTruth
-            fileNodules = self.annotationDf[self.annotationDf.file == file]
-            for idx, nodule in fileNodules.iterrows():
-                groundTruthImage = self.fillGroundTruthImage(groundTruthImage, nodule, worldOrigin, spacing)
-
-            sample = [image, groundTruthImage]
-            samples.append(sample)
-        return samples
+        self.progressBar.close()
     

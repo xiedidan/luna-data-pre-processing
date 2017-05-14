@@ -10,6 +10,10 @@ import array
 import math
 from tqdm import tqdm
 import h5py
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 class NoduleSerializer(object):
     # constructor
@@ -55,7 +59,7 @@ class NoduleSerializer(object):
     def writeToMhd(self, subPath, seriesuid, idx, nodule):
         mhdPath = self.dataPath + subPath
         if not os.path.isdir(mhdPath):
-            os.mkdir(mhdPath)
+            os.makedirs(mhdPath)
 
         filename = mhdPath + "nodule-" + seriesuid + "-" + str(idx) + ".mhd"
 
@@ -83,7 +87,7 @@ class NoduleSerializer(object):
         hdfPath = self.dataPath + subPath
 
         if not os.path.isdir(hdfPath):
-            os.mkdir(hdfPath)
+            os.makedirs(hdfPath)
         else:
             dataListFile = hdfPath + "data-list.txt"
             if os.path.isfile(dataListFile):
@@ -114,3 +118,25 @@ class NoduleSerializer(object):
         listFilename = hdfPath + "data-list.txt"
         with open(listFilename, "a") as listFile:
             listFile.write(filename)
+
+    def writeToNpy(self, subPath, filename, image):
+        npyPath = self.dataPath + subPath
+        if not os.path.isdir(npyPath):
+            os.makedirs(npyPath)
+
+        imageFile = open(npyPath + filename, "wb")
+        try:
+            pickle.dump(image, imageFile)
+        finally:
+            imageFile.close()
+
+    def readFromNpy(self, subPath, filename):
+        npyPath = self.dataPath + subPath
+
+        imageFile = open(npyPath + filename, "rb")
+        try:
+            image = pickle.load(imageFile)
+        finally:
+            imageFile.close()
+
+        return image
