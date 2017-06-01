@@ -16,7 +16,7 @@ from NoduleSerializer import NoduleSerializer
 
 class NoduleCropper(object):
     # constructor
-    def __init__(self, dataPath = "./", maxDataBound = 400.0, minDataBound = -1000.0, cropSize = 64, levelStr = "Info", logPath = "./log/", logName = "NoduleCropper"):
+    def __init__(self, dataPath = "./", phrase = "train", maxDataBound = 400.0, minDataBound = -1000.0, cropSize = 64, levelStr = "Info", logPath = "./log/", logName = "NoduleCropper"):
         # constant
         self.maxDataBound = maxDataBound
         self.minDataBound = minDataBound
@@ -24,8 +24,11 @@ class NoduleCropper(object):
 
         # path
         self.dataPath = dataPath
-        self.annotationCsvPath = os.path.join(self.dataPath, "csv/train/annotations.csv")
-        self.annotationMhdPath = os.path.join(self.dataPath, "train/")
+        self.phrase = phrase
+        self.phraseSubPath = self.phrase + "/"
+
+        self.annotationCsvPath = os.path.join(self.dataPath, self.phraseSubPath + "csv/" + "annotations.csv")
+        self.annotationMhdPath = os.path.join(self.dataPath, self.phraseSubPath + "raw/")
 
         # data
         self.annotationMhdFileList = glob(self.annotationMhdPath + "*.mhd")
@@ -193,7 +196,7 @@ class NoduleCropper(object):
         worldOrigin = np.array(rawImage.GetOrigin())[::-1]
         oldSpacing = np.array(rawImage.GetSpacing())[::-1]
 
-        #  resample image
+        # resample image
         image, spacing = self.resample(sitk.GetArrayFromImage(rawImage), oldSpacing)
         image = np.rint(image)
         image = np.array(image, dtype=np.int16)
@@ -212,8 +215,9 @@ class NoduleCropper(object):
         sample["groundTruth"] = groundTruthImage
         # print("sample id: {0}, shape: {1}, spacing: {2}".format(sample["seriesuid"], sample["image"].shape, spacing))
 
-        serializer = NoduleSerializer(self.dataPath)
-        serializer.writeToNpy("npy/", sample["seriesuid"], sample["image"], sample["groundTruth"])
+        serializer = NoduleSerializer(self.dataPath, self.phrase)
+        serializer.writeToNpy("nodules/", sample["seriesuid"] + ".npy", sample["image"])
+        serializer.writeToNpy("groundTruths/", sample["seriesuid"] + ".npy", sample["groundTruth"])
 
         self.progressBar.update(1)
 

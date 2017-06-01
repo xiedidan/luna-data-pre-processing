@@ -7,7 +7,7 @@ import os
 from glob import glob
 from tqdm import tqdm
 
-import NoduleSerializer
+from NoduleSerializer import NoduleSerializer
 import lung_segmentation
 
 # create lung mask
@@ -18,16 +18,18 @@ class Segment(object):
         self.dataPath = dataPath
         self.phrase = phrase
         self.phraseSubPath = self.phrase + "/"
-        self.serializer = NoduleSerializer(self.dataPath)
-
-    # helper
-    def segmentSingleFile(self, filename):
+        self.serializer = NoduleSerializer(self.dataPath, self.phraseSubPath)
 
     # interface
     def segmentAllFiles(self):
-        fileList = glob(os.path.join(self.dataPath, self.phraseSubPath, "resample/*.npy"))
+        fileList = glob(os.path.join(self.dataPath, self.phraseSubPath, "nodules/*.npy"))
         for file in enumerate(tqdm(fileList)):
-            filename = os.path.basename(file)
-            image = self.serializer.readFromNpy(self.phraseSubPath + "resample/", filename)
+            print(file)
+            filename = os.path.basename(file[1])
+            image = self.serializer.readFromNpy("nodules/", filename)
             mask = lung_segmentation.segment_HU_scan_elias(image)
-            self.serializer.writeToNpy(self.phraseSubPath + "mask/", filename)
+            self.serializer.writeToNpy("mask/", filename, image)
+
+if __name__ == "__main__":
+    seg = Segment("d:/project/tianchi/data/", "test")
+    seg.segmentAllFiles()

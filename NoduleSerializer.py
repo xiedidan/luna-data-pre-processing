@@ -17,10 +17,12 @@ except:
 
 class NoduleSerializer(object):
     # constructor
-    def __init__(self, dataPath):
+    def __init__(self, dataPath = "./", phrase = "train"):
         # path
         self.dataPath = dataPath
-        self.lmdbPath = os.path.join(self.dataPath, "lmdb/")
+        self.phrase = phrase
+        self.phraseSubPath = phrase + "/"
+        self.lmdbPath = os.path.join(self.dataPath, self.phraseSubPath, "lmdb/")
 
     # helper
     def writeMhdMetaHeader(self, filename, meta):
@@ -57,7 +59,7 @@ class NoduleSerializer(object):
 
     # interface
     def writeToMhd(self, subPath, seriesuid, idx, nodule):
-        mhdPath = self.dataPath + subPath
+        mhdPath = self.dataPath + self.phraseSubPath + subPath
         if not os.path.isdir(mhdPath):
             os.makedirs(mhdPath)
 
@@ -84,7 +86,7 @@ class NoduleSerializer(object):
         self.writeMhdRawData(dataPath, nodule)
 
     def initHdf5(self, subPath):
-        hdfPath = self.dataPath + subPath
+        hdfPath = self.dataPath + self.phraseSubPath + subPath
 
         if not os.path.isdir(hdfPath):
             os.makedirs(hdfPath)
@@ -95,7 +97,7 @@ class NoduleSerializer(object):
 
     def writeFileNoduleToHdf5(self, subPath, fileNodules, gzipFlag = False):
         seriesuid = fileNodules["seriesuid"]
-        hdfPath = self.dataPath + subPath
+        hdfPath = self.dataPath + self.phraseSubPath + subPath
 
         filename = ""
         if not gzipFlag:
@@ -119,24 +121,24 @@ class NoduleSerializer(object):
         with open(listFilename, "a") as listFile:
             listFile.write(filename)
 
-    def writeToNpy(self, subPath, filename, image):
-        npyPath = self.dataPath + subPath
+    def writeToNpy(self, subPath, filename, data):
+        npyPath = self.dataPath + self.phraseSubPath + subPath
         if not os.path.isdir(npyPath):
             os.makedirs(npyPath)
 
-        imageFile = open(npyPath + filename, "wb")
+        dataFile = open(npyPath + filename, "wb")
         try:
-            pickle.dump(image, imageFile)
+            pickle.dump(data, dataFile)
         finally:
-            imageFile.close()
+            dataFile.close()
 
     def readFromNpy(self, subPath, filename):
-        npyPath = self.dataPath + subPath
+        npyPath = self.dataPath + self.phraseSubPath + subPath
 
-        imageFile = open(npyPath + filename, "rb")
+        dataFile = open(npyPath + filename, "rb")
         try:
-            image = pickle.load(imageFile)
+            data = pickle.load(dataFile)
         finally:
-            imageFile.close()
+            dataFile.close()
 
-        return image
+        return data
