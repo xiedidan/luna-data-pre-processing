@@ -6,7 +6,7 @@ from NoduleCropper import NoduleCropper
 from NoduleSerializer import NoduleSerializer
 
 dataPath = "d:/project/tianchi/data/"
-phrase = "train"
+phrase = "test"
 
 cropSize = 0
 if phrase == "train":
