@@ -55,7 +55,7 @@ def segment_HU_scan_elias(x, threshold=-350, pid='test', plot=False, verbose=Fal
     ratio_overlap_treshold = 0.015
 
     #discard disconnected regions, start at the middle slice and go to the head
-    for iz in range(mask.shape[0]/2, mask.shape[0]-1):
+    for iz in range(mask.shape[0]//2, mask.shape[0]-1): # use // for floor div
         overlap = mask[iz] * mask[iz+1] 
         label_image = skimage.measure.label(mask[iz+1])
         if verbose: 
@@ -74,7 +74,7 @@ def segment_HU_scan_elias(x, threshold=-350, pid='test', plot=False, verbose=Fal
                     mask[iz+1, coordinates[0], coordinates[1]] = 0
 
     #discard disconnected regions, start at the middle slice and go to the head
-    for iz in range(mask.shape[0]/2,0,-1 ):
+    for iz in range(mask.shape[0]//2,0,-1 ):
         overlap = mask[iz] * mask[iz-1] 
         label_image = skimage.measure.label(mask[iz-1])
         if verbose: 
