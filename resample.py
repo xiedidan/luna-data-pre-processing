@@ -3,7 +3,10 @@
 from NoduleCropper import NoduleCropper
 
 dataPath = "d:/project/tianchi/data/"
-phrase = "test"
+phase = "deploy"
 
-cropper = NoduleCropper(dataPath = dataPath, phrase = phrase)
-cropper.resampleAndCreateGroundTruth()
+cropper = NoduleCropper(dataPath = dataPath, phase = phase)
+if phase != "deploy":
+    cropper.resampleAndCreateGroundTruth()
+else:
+    cropper.resampleAllFiles()

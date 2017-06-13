@@ -16,7 +16,7 @@ from NoduleSerializer import NoduleSerializer
 
 class NoduleCropper(object):
     # constructor
-    def __init__(self, dataPath = "./", phrase = "train", maxDataBound = 400.0, minDataBound = -1000.0, cropSize = 64, levelStr = "Info", logPath = "./log/", logName = "NoduleCropper"):
+    def __init__(self, dataPath = "./", phase = "train", maxDataBound = 400.0, minDataBound = -1000.0, cropSize = 64, levelStr = "Info", logPath = "./log/", logName = "NoduleCropper"):
         # constant
         self.maxDataBound = maxDataBound
         self.minDataBound = minDataBound
@@ -24,21 +24,20 @@ class NoduleCropper(object):
 
         # path
         self.dataPath = dataPath
-        self.phrase = phrase
-        self.phraseSubPath = self.phrase + "/"
+        self.phase = phase
+        self.phaseSubPath = self.phase + "/"
 
-        self.annotationCsvPath = os.path.join(self.dataPath, self.phraseSubPath + "csv/" + "annotations.csv")
-        self.annotationMhdPath = os.path.join(self.dataPath, self.phraseSubPath + "raw/")
+        self.annotationCsvPath = os.path.join(self.dataPath, self.phaseSubPath + "csv/" + "annotations.csv")
+        self.annotationMhdPath = os.path.join(self.dataPath, self.phaseSubPath + "raw/")
 
         # data
-        self.annotationMhdFileList = glob(self.annotationMhdPath + "*.mhd")
-
-        self.annotationDf = pd.read_csv(self.annotationCsvPath)
-        self.annotationDf["file"] = self.annotationDf["seriesuid"].map(lambda seriesuid: self.getFileFromSeriesuid(self.annotationMhdFileList, seriesuid))
-        self.annotationDf.dropna()
-
-        # progress bar
-        self.progressBar = tqdm(total = len(self.annotationMhdFileList))
+        if self.phase != "deploy":
+            self.annotationMhdFileList = glob(self.annotationMhdPath + "*.mhd")
+            self.annotationDf = pd.read_csv(self.annotationCsvPath)
+            self.annotationDf["file"] = self.annotationDf["seriesuid"].map(lambda seriesuid: self.getFileFromSeriesuid(self.annotationMhdFileList, seriesuid))
+            self.annotationDf.dropna()
+            # progress bar
+            self.progressBar = tqdm(total=len(self.annotationMhdFileList))
 
         # logger
         self.logger = Logger(levelStr, logPath, logName)
@@ -97,7 +96,11 @@ class NoduleCropper(object):
                 return file
 
     def cropSingleNodule(self, image, nodule, worldOrigin, spacing, size):
-        noduleWorldCenter = np.array([nodule.coordZ, nodule.coordY, nodule.coordX])
+        noduleWorldCenter = np.array([0., 0., 0.])
+        if self.phase == "deploy":
+            noduleWorldCenter = np.array([nodule["coordZ"], nodule["coordY"], nodule["coordX"]])
+        else:
+            noduleWorldCenter = np.array([nodule.coordZ, nodule.coordY, nodule.coordX])
         noduleCenter = np.rint((noduleWorldCenter - worldOrigin) / spacing)
         noduleCenter = np.array(noduleCenter, dtype = int)
 
@@ -215,9 +218,30 @@ class NoduleCropper(object):
         sample["groundTruth"] = groundTruthImage
         # print("sample id: {0}, shape: {1}, spacing: {2}".format(sample["seriesuid"], sample["image"].shape, spacing))
 
-        serializer = NoduleSerializer(self.dataPath, self.phrase)
+        serializer = NoduleSerializer(self.dataPath, self.phase)
         serializer.writeToNpy("nodules/", sample["seriesuid"] + ".npy", sample["image"])
         serializer.writeToNpy("groundTruths/", sample["seriesuid"] + ".npy", sample["groundTruth"])
+
+        self.progressBar.update(1)
+
+    def resampleProcessor(self, filename):
+        # load image
+        rawImage = sitk.ReadImage(filename)
+        # worldOrigin = np.array(rawImage.GetOrigin())[::-1]
+        oldSpacing = np.array(rawImage.GetSpacing())[::-1]
+
+        # resample image
+        image, spacing = self.resample(sitk.GetArrayFromImage(rawImage), oldSpacing)
+        image = np.rint(image)
+        image = np.array(image, dtype=np.int16)
+
+        sample = {}
+        sample["seriesuid"] = os.path.basename(filename).split(".")[0]
+        sample["image"] = image
+        # print("sample id: {0}, shape: {1}, spacing: {2}".format(sample["seriesuid"], sample["image"].shape, spacing))
+
+        serializer = NoduleSerializer(self.dataPath, self.phase)
+        serializer.writeToNpy("nodules/", sample["seriesuid"] + ".npy", sample["image"])
 
         self.progressBar.update(1)
 
@@ -246,4 +270,12 @@ class NoduleCropper(object):
         pool.map(self.resampleAndCreateGroundTruthProcessor, self.annotationMhdFileList)
 
         self.progressBar.close()
-    
+
+    def resampleAllFiles(self):
+        rawFileList = glob(self.dataPath + self.phaseSubPath + "raw/*.mhd")
+        self.progressBar = tqdm(total=len(rawFileList))
+
+        pool = ThreadPool()
+        pool.map(self.resampleProcessor, rawFileList)
+
+        self.progressBar.close()
