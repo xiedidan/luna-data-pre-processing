@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import matplotlib.pyplot as plt
 import matplotlib
+import numpy as np
 
 from NoduleSerializer import NoduleSerializer
 
@@ -31,6 +32,6 @@ def plot_3d(image, threshold=0):
     plt.show()
 
 if __name__ == "__main__":
-    serializer = NoduleSerializer("d:/project/tianchi/data/", "train")
-    mask = serializer.readFromNpy("nodules/", "LKDS-00020-10.npy")
+    serializer = NoduleSerializer("d:/project/tianchi/data/experiment/", "deploy")
+    mask = serializer.readFromNpy("concat/", "LKDS-00012.npy")
     plot_3d(mask)

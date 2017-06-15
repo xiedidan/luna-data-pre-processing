@@ -43,5 +43,5 @@ class Segment(object):
         pool.map(self.segmentSingleFile, fileList)
 
 if __name__ == "__main__":
-    seg = Segment("d:/project/tianchi/data/", "test")
+    seg = Segment("d:/project/tianchi/data/", "deploy")
     seg.segmentAllFiles()
