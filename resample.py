@@ -3,10 +3,11 @@
 from NoduleCropper import NoduleCropper
 
 dataPath = "d:/project/tianchi/data/"
-phase = "deploy"
+phase = "train"
+net = "resnet"
 
 cropper = NoduleCropper(dataPath = dataPath, phase = phase)
-if phase != "deploy":
+if (phase != "deploy") and (net == "vnet"):
     cropper.resampleAndCreateGroundTruth()
 else:
     cropper.resampleAllFiles()

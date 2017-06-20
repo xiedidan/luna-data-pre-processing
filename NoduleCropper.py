@@ -36,8 +36,6 @@ class NoduleCropper(object):
             self.annotationDf = pd.read_csv(self.annotationCsvPath)
             self.annotationDf["file"] = self.annotationDf["seriesuid"].map(lambda seriesuid: self.getFileFromSeriesuid(self.annotationMhdFileList, seriesuid))
             self.annotationDf.dropna()
-            # progress bar
-            self.progressBar = tqdm(total=len(self.annotationMhdFileList))
 
         # logger
         self.logger = Logger(levelStr, logPath, logName)
@@ -241,13 +239,16 @@ class NoduleCropper(object):
         # print("sample id: {0}, shape: {1}, spacing: {2}".format(sample["seriesuid"], sample["image"].shape, spacing))
 
         serializer = NoduleSerializer(self.dataPath, self.phase)
-        serializer.writeToNpy("nodules/", sample["seriesuid"] + ".npy", sample["image"])
+        serializer.writeToNpy("resamples/", sample["seriesuid"] + ".npy", sample["image"])
 
         self.progressBar.update(1)
 
     # interface
     def cropAllNodule(self):
         nodules = []
+        # progress bar
+        self.progressBar = tqdm(total=len(self.annotationMhdFileList))
+
         for file in enumerate(tqdm(self.annotationMhdFileList)):
             filename = file[1]
 
@@ -259,6 +260,9 @@ class NoduleCropper(object):
         return nodules
 
     def cropAllNoduleForMhd(self):
+        # progress bar
+        self.progressBar = tqdm(total=len(self.annotationMhdFileList))
+
         pool = ThreadPool()
         nodules = pool.map(self.cropAllNoduleForMhdProcessor, self.annotationMhdFileList)
         if None in nodules:
@@ -266,6 +270,9 @@ class NoduleCropper(object):
         return nodules
 
     def resampleAndCreateGroundTruth(self):
+        # progress bar
+        self.progressBar = tqdm(total=len(self.annotationMhdFileList))
+        
         pool = ThreadPool()
         pool.map(self.resampleAndCreateGroundTruthProcessor, self.annotationMhdFileList)
 
