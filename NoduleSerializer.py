@@ -1,14 +1,8 @@
 # -*- coding:utf-8 -*-
 
-import SimpleITK as sitk
-import numpy as np
-from glob import glob
-import pandas as pd
-import scipy.ndimage
 import os
 import array
-import math
-from tqdm import tqdm
+
 import h5py
 try:
     import cPickle as pickle

@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from skimage import measure, morphology
+# from skimage import measure, morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import matplotlib.pyplot as plt
@@ -31,7 +31,38 @@ def plot_3d(image, threshold=0):
 
     plt.show()
 
+def plotMark2D(image, center, diameter):
+    image = np.rint(image).astype(np.int16)
+    center = np.rint(center).astype(np.int)
+
+    z = center[0]
+    imageSlice = np.squeeze(image[z, :, :])
+    imageSlice = markNodule(imageSlice, center, diameter)
+
+    plt.imshow(imageSlice, cmap=plt.cm.gray)
+
+# helper
+def markNodule(imageSlice, center, diameter, crossSize=5):
+    # draw cross
+    xRange = [center[2] - crossSize, center[2] + crossSize]
+    yRange = [center[1] - crossSize, center[1] + crossSize]
+    imageSlice[center[1], xRange[0]:xRange[1]] = 32767
+    imageSlice[yRange[0]:yRange[1], center[0]] = 32767
+
+    #draw box
+    radius = np.int(np.rint(diameter / 2))
+    xRange = [center[2] - radius, center[2] + radius]
+    yRange = [center[1] - radius, center[1] + radius]
+    imageSlice[yRange[0], xRange[0]:xRange[1]] = 32767
+    imageSlice[yRange[1], xRange[0]:xRange[1]] = 32767
+    imageSlice[yRange[0]:yRange[1], xRange[0]] = 32767
+    imageSlice[yRange[0]:yRange[1], xRange[1]] = 32767
+
+    return imageSlice
+
 if __name__ == "__main__":
-    serializer = NoduleSerializer("d:/project/tianchi/data/experiment/", "deploy")
-    mask = serializer.readFromNpy("concat/", "LKDS-00012.npy")
-    plot_3d(mask)
+    serializer = NoduleSerializer("d:/project/tianchi/data/", "train")
+    crop = serializer.readFromNpy("nodules/", "LKDS-00001-0.npy")
+    # plot_3d(mask)
+
+    plotMark2D(crop, np.array[32, 32, 32], 10)
