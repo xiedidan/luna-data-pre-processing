@@ -4,7 +4,7 @@ from NoduleCropper import NoduleCropper
 
 dataPath = "d:/project/tianchi/data/"
 phase = "train"
-net = "resnet"
+net = "vnet"
 
 cropper = NoduleCropper(dataPath = dataPath, phase = phase)
 if (phase != "deploy") and (net == "vnet"):

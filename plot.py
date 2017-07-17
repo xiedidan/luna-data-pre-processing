@@ -32,37 +32,76 @@ def plot_3d(image, threshold=0):
     plt.show()
 
 def plotMark2D(image, center, diameter):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax2 = fig.add_subplot(1, 2, 2)
+
     image = np.rint(image).astype(np.int16)
     center = np.rint(center).astype(np.int)
 
     z = center[0]
     imageSlice = np.squeeze(image[z, :, :])
-    imageSlice = markNodule(imageSlice, center, diameter)
+    ax1.imshow(imageSlice, cmap=plt.cm.gray)
 
-    plt.imshow(imageSlice, cmap=plt.cm.gray)
+    groundTruthSlice = np.zeros(imageSlice.shape)
+    groundTruthSlice = markNodule(groundTruthSlice, center, diameter)
+    ax2.imshow(groundTruthSlice, cmap=plt.cm.gray)
+
+    plt.pause(100)
+
+def plotTrainSampleFromFile2D(serializer, seriesuid, number):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax2 = fig.add_subplot(1, 2, 2)
+
+    image = serializer.readFromNpy("nodules/", "{0}-{1}.npy".format(seriesuid, number))
+    groundTruth = serializer.readFromNpy("groundTruths/", "{0}-{1}.npy".format(seriesuid, number))
+
+    z = np.int(np.rint(image.shape[0] / 2))
+
+    imageSlice = np.squeeze(image[z, :, :])
+    groundTruthSlice = np.squeeze(groundTruth[z, :, :])
+
+    ax1.imshow(imageSlice, cmap=plt.cm.gray)
+    ax2.imshow(groundTruthSlice, cmap=plt.cm.gray)
+
+    plt.show()
+
+def plotVnetCrop2D(crop, z):
+    plt.clf()
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax2 = fig.add_subplot(1, 2, 2)
+
+    image = crop["image"]
+    groundTruth = crop["groundTruth"]
+
+    imageSlice = np.squeeze(image[z, :, :])
+    groundTruthSlice = np.squeeze(groundTruth[z, :, :])
+
+    ax1.imshow(imageSlice, cmap=plt.cm.gray)
+    ax2.imshow(groundTruthSlice, cmap=plt.cm.gray)
+    plt.show()
 
 # helper
-def markNodule(imageSlice, center, diameter, crossSize=5):
+def markNodule(imageSlice, center, diameter, crossSize=2):
     # draw cross
-    xRange = [center[2] - crossSize, center[2] + crossSize]
-    yRange = [center[1] - crossSize, center[1] + crossSize]
-    imageSlice[center[1], xRange[0]:xRange[1]] = 32767
-    imageSlice[yRange[0]:yRange[1], center[0]] = 32767
+    # xRange = [center[2] - crossSize, center[2] + crossSize]
+    # yRange = [center[1] - crossSize, center[1] + crossSize]
+    # imageSlice[center[1], xRange[0]:xRange[1]] = 32767
+    # imageSlice[yRange[0]:yRange[1], center[0]] = 32767
 
     #draw box
     radius = np.int(np.rint(diameter / 2))
     xRange = [center[2] - radius, center[2] + radius]
     yRange = [center[1] - radius, center[1] + radius]
-    imageSlice[yRange[0], xRange[0]:xRange[1]] = 32767
-    imageSlice[yRange[1], xRange[0]:xRange[1]] = 32767
-    imageSlice[yRange[0]:yRange[1], xRange[0]] = 32767
-    imageSlice[yRange[0]:yRange[1], xRange[1]] = 32767
+    imageSlice[yRange[0], xRange[0]:xRange[1]+1] = 32767
+    imageSlice[yRange[1], xRange[0]:xRange[1]+1] = 32767
+    imageSlice[yRange[0]:yRange[1]+1, xRange[0]] = 32767
+    imageSlice[yRange[0]:yRange[1]+1, xRange[1]] = 32767
 
     return imageSlice
 
 if __name__ == "__main__":
-    serializer = NoduleSerializer("d:/project/tianchi/data/", "train")
-    crop = serializer.readFromNpy("nodules/", "LKDS-00001-0.npy")
-    # plot_3d(mask)
-
-    plotMark2D(crop, np.array[32, 32, 32], 10)
+    serializer = NoduleSerializer("d:/project/tianchi/data/", "test")
+    plotTrainSampleFromFile2D(serializer, "LKDS-00160", 4)

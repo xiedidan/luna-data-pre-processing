@@ -95,7 +95,7 @@ class NoduleCropper(object):
 
     def cropSingleNodule(self, image, nodule, worldOrigin, spacing, size):
         noduleWorldCenter = np.array([0., 0., 0.])
-        if self.phase == "deploy":
+        if isinstance(nodule, dict):
             noduleWorldCenter = np.array([nodule["coordZ"], nodule["coordY"], nodule["coordX"]])
         else:
             noduleWorldCenter = np.array([nodule.coordZ, nodule.coordY, nodule.coordX])

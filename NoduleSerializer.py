@@ -11,12 +11,12 @@ except:
 
 class NoduleSerializer(object):
     # constructor
-    def __init__(self, dataPath = "./", phrase = "train"):
+    def __init__(self, dataPath = "./", phase = "train"):
         # path
         self.dataPath = dataPath
-        self.phrase = phrase
-        self.phraseSubPath = phrase + "/"
-        self.lmdbPath = os.path.join(self.dataPath, self.phraseSubPath, "lmdb/")
+        self.phase = phase
+        self.phaseSubPath = phase + "/"
+        self.lmdbPath = os.path.join(self.dataPath, self.phaseSubPath, "lmdb/")
 
     # helper
     def writeMhdMetaHeader(self, filename, meta):
@@ -53,7 +53,7 @@ class NoduleSerializer(object):
 
     # interface
     def writeToMhd(self, subPath, seriesuid, idx, nodule):
-        mhdPath = self.dataPath + self.phraseSubPath + subPath
+        mhdPath = self.dataPath + self.phaseSubPath + subPath
         if not os.path.isdir(mhdPath):
             os.makedirs(mhdPath)
 
@@ -80,7 +80,7 @@ class NoduleSerializer(object):
         self.writeMhdRawData(dataPath, nodule)
 
     def initHdf5(self, subPath):
-        hdfPath = self.dataPath + self.phraseSubPath + subPath
+        hdfPath = self.dataPath + self.phaseSubPath + subPath
 
         if not os.path.isdir(hdfPath):
             os.makedirs(hdfPath)
@@ -91,7 +91,7 @@ class NoduleSerializer(object):
 
     def writeFileNoduleToHdf5(self, subPath, fileNodules, gzipFlag = False):
         seriesuid = fileNodules["seriesuid"]
-        hdfPath = self.dataPath + self.phraseSubPath + subPath
+        hdfPath = self.dataPath + self.phaseSubPath + subPath
 
         filename = ""
         if not gzipFlag:
@@ -116,7 +116,7 @@ class NoduleSerializer(object):
             listFile.write(filename)
 
     def writeToNpy(self, subPath, filename, data):
-        npyPath = self.dataPath + self.phraseSubPath + subPath
+        npyPath = self.dataPath + self.phaseSubPath + subPath
         if not os.path.isdir(npyPath):
             os.makedirs(npyPath)
 
@@ -127,7 +127,7 @@ class NoduleSerializer(object):
             dataFile.close()
 
     def readFromNpy(self, subPath, filename):
-        npyPath = self.dataPath + self.phraseSubPath + subPath
+        npyPath = self.dataPath + self.phaseSubPath + subPath
 
         dataFile = open(npyPath + filename, "rb")
         try:

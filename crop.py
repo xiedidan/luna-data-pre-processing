@@ -6,18 +6,18 @@ from NoduleCropper import NoduleCropper
 from NoduleSerializer import NoduleSerializer
 
 dataPath = "d:/project/tianchi/data/"
-phrase = "test"
+phase = "test"
 
 cropSize = 0
-if phrase == "train":
+if phase == "train":
     cropSize = 128
-elif phrase == "test":
+elif phase == "test":
     cropSize = 64
 else:
     cropSize = 64
 
-cropper = NoduleCropper(dataPath = dataPath, phrase = phrase, cropSize = cropSize)
-serializer = NoduleSerializer(dataPath = dataPath, phrase = phrase)
+cropper = NoduleCropper(dataPath = dataPath, phase = phase, cropSize = cropSize)
+serializer = NoduleSerializer(dataPath = dataPath, phase = phase)
 
 mhdNodules = cropper.cropAllNoduleForMhd()
 for fileNodules in tqdm(mhdNodules):
