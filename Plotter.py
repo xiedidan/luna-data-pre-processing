@@ -43,19 +43,24 @@ class Plotter(object):
         dataFig = plt.figure()
         dataFig.show()
 
+        dataCount = 0
+
         while True:
             data, label, z = self.dataQueue.get()
+            dataCount += 1
 
-            dataFig.clf()
-            axData = dataFig.add_subplot(1, 2, 1)
-            axLabel = dataFig.add_subplot(1, 2, 2)
+            if np.mod(dataCount, self.dataInterval) == 0:
+                dataFig.clf()
+                axData = dataFig.add_subplot(1, 2, 1)
+                axLabel = dataFig.add_subplot(1, 2, 2)
 
-            dataSlice = np.squeeze(data[z, :, :])
-            labelSlice = np.squeeze(label[z, :, :])
+                dataSlice = np.squeeze(data[z, :, :])
+                labelSlice = np.squeeze(label[z, :, :])
 
-            axData.imshow(dataSlice, cmap = plt.cm.gray)
-            axLabel.imshow(labelSlice, cmap = plt.cm.gray)
-            
+                axData.imshow(dataSlice, cmap = plt.cm.gray)
+                axLabel.imshow(labelSlice, cmap = plt.cm.gray)
+                dataFig.show()
+                plt.pause(0.00000001)
 
     # interface
     def initLossAndAccu(self, baseIter, iteration, netPath, spacing = 10, interval = 30):
@@ -75,7 +80,13 @@ class Plotter(object):
     def plotLossAndAccu(self, loss, accu):
         self.lossQueue.put(tuple((loss, accu)))
 
-    def initDataAndLabel2D(self):
+    def initDataAndLabel2D(self, interval = 20):
+        self.dataInterval = interval
         self.dataQueue = multiprocessing.Queue(self.queueSize)
 
-    def plotDataAndLabel2D(self):
+        self.dataProc = multiprocessing.Process(target = self.dataAndLabel2DProcessor)
+        self.dataProc.daemon = True
+        self.dataProc.start()
+
+    def plotDataAndLabel2D(self, data, label, z):
+        self.dataQueue.put(tuple((data, label, z)))
