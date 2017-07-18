@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
 
-from NoduleSerializer import NoduleSerializer
-
 class Plotter(object):
     # constructor
     def __init__(self, queueSize = 30):
@@ -18,18 +16,18 @@ class Plotter(object):
     # processor
     def lossAndAccuProcessor(self):
         lossFig = plt.figure()
-        lossFig.show()
+        plt.grid(True)
 
         trainLoss = np.zeros(self.lossIteration - self.lossBaseIter)
         testAccu = np.zeros(self.lossIteration - self.lossBaseIter)
 
-        for i in range(self.lossInterval - self.lossBaseIter):
+        for i in range(self.lossIteration - self.lossBaseIter):
             loss, accu = self.lossQueue.get()
             trainLoss[i] = loss
             testAccu[i] = accu
             self.lossCount += 1
 
-            if np.mod(self.lossCount, self.lossSpacing) == 0:
+            if np.mod(self.lossCount, self.lossInterval) == 0:
                 lossFig.clf()
                 lossAx = lossFig.add_subplot(1, 1, 1)
                 accuAx = lossAx.twinx()
@@ -37,7 +35,8 @@ class Plotter(object):
                 lossAx.plot(range(self.lossBaseIter, self.lossBaseIter + i), trainLoss[0:i], "b-", label = "Loss", linewidth = 1)
                 accuAx.plot(range(self.lossBaseIter, self.lossBaseIter + i), testAccu[0:i], "g-", label = "Accu", linewidth = 1)
 
-                lossFig.draw()
+                lossFig.show()
+                plt.pause(0.00000001)
                 lossFig.savefig(self.lossNetPath + "loss-accu.png")
 
 
@@ -57,4 +56,4 @@ class Plotter(object):
         self.lossProc.start()
 
     def plotLossAndAccu(self, loss, accu):
-        self.lossQueue.put(tuple(loss, accu))
+        self.lossQueue.put(tuple((loss, accu)))
