@@ -40,6 +40,23 @@ class Plotter(object):
                 lossFig.draw()
                 lossFig.savefig(self.lossNetPath + "loss-accu.png")
 
+    def dataAndLabel2DProcessor(self):
+        dataFig = plt.figure()
+        dataFig.show()
+
+        while True:
+            data, label, z = self.dataQueue.get()
+
+            dataFig.clf()
+            axData = dataFig.add_subplot(1, 2, 1)
+            axLabel = dataFig.add_subplot(1, 2, 2)
+
+            dataSlice = np.squeeze(data[z, :, :])
+            labelSlice = np.squeeze(label[z, :, :])
+
+            axData.imshow(dataSlice, cmap = plt.cm.gray)
+            axLabel.imshow(labelSlice, cmap = plt.cm.gray)
+            
 
     # interface
     def initLossAndAccu(self, baseIter, iteration, netPath, spacing = 10, interval = 30):
@@ -58,3 +75,8 @@ class Plotter(object):
 
     def plotLossAndAccu(self, loss, accu):
         self.lossQueue.put(tuple(loss, accu))
+
+    def initDataAndLabel2D(self):
+        self.dataQueue = multiprocessing.Queue(self.queueSize)
+
+    def plotDataAndLabel2D(self):
