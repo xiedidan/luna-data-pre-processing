@@ -59,6 +59,7 @@ class Plotter(object):
 
                 axData.imshow(dataSlice, cmap = plt.cm.gray)
                 axLabel.imshow(labelSlice, cmap = plt.cm.gray)
+
                 dataFig.show()
                 plt.pause(0.00000001)
 
