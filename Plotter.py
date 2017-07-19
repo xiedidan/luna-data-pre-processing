@@ -63,6 +63,39 @@ class Plotter(object):
                 dataFig.show()
                 plt.pause(0.00000001)
 
+    def resultProcessor(self):
+        resultFig = plt.figure()
+        resultFig.show()
+
+        resultCount = 0
+
+        while True:
+            result, label = self.resultQueue.get()
+            resultCount += 1
+
+            if np.mod(resultCount, self.resultInterval) == 0:
+                resultFig.clf()
+
+                shapeZ = result.shape[0]
+                sliceZ = np.array([np.int(shapeZ // 4), np.int(shapeZ // 2) - 1, np.int(shapeZ // 2), shapeZ - np.int(shapeZ // 4)])
+
+                axResults = []
+                axLabels = []
+                for i in range(4):
+                    axResults[i] = resultFig.add_subplot(2, 4, i)
+                    axLabels[i] = resultFig.add_subplot(2, 4, i + 4)
+
+                    z = sliceZ[i]
+
+                    resultSlice = np.squeeze(result[z, :, :])
+                    labelSlice = np.squeeze(label[z, :, :])
+
+                    axResults[i].imshow(resultSlice, cmap=plt.cm.winter)
+                    axLabels[i].imshow(labelSlice, cmap=plt.cm.hot)
+
+                resultFig.show()
+                plt.pause(0.00000001)
+
     # interface
     def initLossAndAccu(self, baseIter, iteration, netPath, spacing = 10, interval = 30):
         self.lossCount = 0
@@ -91,3 +124,14 @@ class Plotter(object):
 
     def plotDataAndLabel2D(self, data, label, z):
         self.dataQueue.put(tuple((data, label, z)))
+
+    def initResult(self, interval = 20):
+        self.resultInterval = interval
+        self.resultQueue = multiprocessing.Queue(self.queueSize)
+
+        self.resultProc = multiprocessing.Process(target = self.resultProcess)
+        self.resultProc.daemon = True
+        self.resultProc.start()
+
+    def plotResult(self, result, label):
+        self.resultQueue.put(tuple((result, label)))
