@@ -70,7 +70,7 @@ class Plotter(object):
         resultCount = 0
 
         while True:
-            result, label = self.resultQueue.get()
+            data, label, result = self.resultQueue.get()
             resultCount += 1
 
             if np.mod(resultCount, self.resultInterval) == 0:
@@ -79,19 +79,23 @@ class Plotter(object):
                 shapeZ = result.shape[0]
                 sliceZ = np.array([np.int(shapeZ // 4), np.int(shapeZ // 2) - 1, np.int(shapeZ // 2), shapeZ - np.int(shapeZ // 4)])
 
+                axDatas = []
                 axResults = []
                 axLabels = []
                 for i in range(4):
-                    axResults[i] = resultFig.add_subplot(2, 4, i)
-                    axLabels[i] = resultFig.add_subplot(2, 4, i + 4)
+                    axDatas.append(resultFig.add_subplot(3, 4, i + 1))
+                    axLabels.append(resultFig.add_subplot(3, 4, i + 5))
+                    axResults.append(resultFig.add_subplot(3, 4, i + 9))
 
                     z = sliceZ[i]
 
+                    dataSlice = np.squeeze(data[z, :, :])
                     resultSlice = np.squeeze(result[z, :, :])
                     labelSlice = np.squeeze(label[z, :, :])
 
+                    axDatas[i].imshow(dataSlice, cmap = plt.cm.hot)
                     axResults[i].imshow(resultSlice, cmap=plt.cm.winter)
-                    axLabels[i].imshow(labelSlice, cmap=plt.cm.hot)
+                    axLabels[i].imshow(labelSlice, cmap=plt.cm.gray)
 
                 resultFig.show()
                 plt.pause(0.00000001)
@@ -129,9 +133,9 @@ class Plotter(object):
         self.resultInterval = interval
         self.resultQueue = multiprocessing.Queue(self.queueSize)
 
-        self.resultProc = multiprocessing.Process(target = self.resultProcess)
+        self.resultProc = multiprocessing.Process(target = self.resultProcessor)
         self.resultProc.daemon = True
         self.resultProc.start()
 
-    def plotResult(self, result, label):
-        self.resultQueue.put(tuple((result, label)))
+    def plotResult(self, data, label, result):
+        self.resultQueue.put(tuple((data, label, result)))
