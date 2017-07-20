@@ -68,6 +68,7 @@ class Plotter(object):
         resultFig.show()
 
         resultCount = 0
+        resultFigCount = 0
 
         while True:
             data, label, result = self.resultQueue.get()
@@ -99,6 +100,8 @@ class Plotter(object):
 
                 resultFig.show()
                 plt.pause(0.00000001)
+                resultFigCount += 1
+                resultFig.savefig(self.lossNetPath + "result-{0}-{1}.png".format(resultFigCount, resultCount))
 
     # interface
     def initLossAndAccu(self, baseIter, iteration, netPath, spacing = 10, interval = 30):
