@@ -15,29 +15,31 @@ import lung_segmentation
 
 class Segment(object):
     # constructor
-    def __init__(self, dataPath, phrase = "deploy"):
+    def __init__(self, dataPath, phase = "deploy"):
         self.dataPath = dataPath
-        self.phrase = phrase
-        self.phraseSubPath = self.phrase + "/"
+        self.phase = phase
+        self.phaseSubPath = self.phase + "/"
 
 
     #helper
     def segmentSingleFile(self, file):
         filename = os.path.basename(file)
 
-        serializer = NoduleSerializer(self.dataPath, self.phraseSubPath)
+        serializer = NoduleSerializer(self.dataPath, self.phaseSubPath)
         image = serializer.readFromNpy("resamples/", filename)
 
         mask = lung_segmentation.segment_HU_scan_elias(image)
-
         serializer.writeToNpy("mask/", filename, mask)
+
+        image = image * mask
+        serializer.writeToNpy("lung/", filename, image)
 
         print("{0}".format(filename))
         # self.progressBar.update(1)
 
     # interface
     def segmentAllFiles(self):
-        fileList = glob(os.path.join(self.dataPath, self.phraseSubPath, "resamples/*.npy"))
+        fileList = glob(os.path.join(self.dataPath, self.phaseSubPath, "resamples/*.npy"))
         # self.progressBar = tqdm(total = len(fileList))
         pool = Pool()
         pool.map(self.segmentSingleFile, fileList)

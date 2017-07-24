@@ -37,6 +37,9 @@ class NoduleCropper(object):
             self.annotationDf["file"] = self.annotationDf["seriesuid"].map(lambda seriesuid: self.getFileFromSeriesuid(self.annotationMhdFileList, seriesuid))
             self.annotationDf.dropna()
 
+        # serializer
+        self.serializer = NoduleSerializer(dataPath, phase)
+
         # logger
         self.logger = Logger(levelStr, logPath, logName)
 
@@ -165,6 +168,33 @@ class NoduleCropper(object):
 
         return nodules, groundTruths
 
+    def cropFileNoduleOffline(self, file, size):
+        fileNodules = self.annotationDf[self.annotationDf.file == file]
+
+        # TODO : read lung and groundTruth image
+
+        groundTruths = []
+        nodules = []
+        reverseFlag = False
+        for idx, nodule in fileNodules.iterrows():
+            # ground truth
+            groundTruthImage = self.fillGroundTruthImage(groundTruthImage, nodule, worldOrigin, spacing)
+            groundTruthCrop, minusFlag = self.cropSingleNodule(groundTruthImage, nodule, worldOrigin, spacing, size)
+            groundTruths.append(groundTruthCrop)
+
+            # nodule
+            noduleCrop, minusFlag = self.cropSingleNodule(image, nodule, worldOrigin, spacing, size)
+            nodules.append(noduleCrop)
+            if minusFlag == True:
+                reverseFlag = True
+
+            # TODO : write to nodules/ and labels/
+
+        if reverseFlag == True:
+            self.logger.warning("cropFileNodule()", "Reversed directions detected in Mhd file: " + file + ".")
+
+        return nodules, groundTruths
+
     def cropAllNoduleForMhdProcessor(self, file):
         if file not in self.annotationDf.file.values:
             # print("Mhd file: " + file + " is not found in annotations.csv.")
@@ -217,7 +247,7 @@ class NoduleCropper(object):
         # print("sample id: {0}, shape: {1}, spacing: {2}".format(sample["seriesuid"], sample["image"].shape, spacing))
 
         serializer = NoduleSerializer(self.dataPath, self.phase)
-        serializer.writeToNpy("nodules/", sample["seriesuid"] + ".npy", sample["image"])
+        serializer.writeToNpy("resamples/", sample["seriesuid"] + ".npy", sample["image"])
         serializer.writeToNpy("groundTruths/", sample["seriesuid"] + ".npy", sample["groundTruth"])
 
         self.progressBar.update(1)
@@ -241,6 +271,15 @@ class NoduleCropper(object):
         serializer = NoduleSerializer(self.dataPath, self.phase)
         serializer.writeToNpy("resamples/", sample["seriesuid"] + ".npy", sample["image"])
 
+        self.progressBar.update(1)
+
+    def cropAllNoduleOfflineProcessor(self, filename):
+        if filename not in self.annotationDf.file.values:
+            # print("Mhd file: " + file + " is not found in annotations.csv.")
+            self.logger.warning("cropAllNoduleForMhdProcessor()", "Mhd file: " + filename + " is not found in annotations.csv.")
+            self.progressBar.update(1)
+
+        self.cropFileNoduleOffline(filename, self.cropSize)
         self.progressBar.update(1)
 
     # interface
@@ -286,3 +325,10 @@ class NoduleCropper(object):
         pool.map(self.resampleProcessor, rawFileList)
 
         self.progressBar.close()
+
+    def cropAllNoduleOffline(self):
+        # progress bar
+        self.progressBar = tqdm(total=len(self.annotationMhdFileList))
+
+        pool = ThreadPool()
+        pool.map(self.cropAllNoduleOfflineProcessor, self.annotationMhdFileList)
