@@ -37,9 +37,6 @@ class NoduleCropper(object):
             self.annotationDf["file"] = self.annotationDf["seriesuid"].map(lambda seriesuid: self.getFileFromSeriesuid(self.annotationMhdFileList, seriesuid))
             self.annotationDf.dropna()
 
-        # serializer
-        self.serializer = NoduleSerializer(dataPath, phase)
-
         # logger
         self.logger = Logger(levelStr, logPath, logName)
 
@@ -170,30 +167,32 @@ class NoduleCropper(object):
 
     def cropFileNoduleOffline(self, file, size):
         fileNodules = self.annotationDf[self.annotationDf.file == file]
+        seriesuid = file.split(".")[0]
 
-        # TODO : read lung and groundTruth image
+        # read resample meta
+        serializer = NoduleSerializer(self.dataPath, self.phase)
+        meta = serializer.readFromNpy("resample-meta/", "{0}.npy".format(seriesuid))
+        worldOrigin = meta["worldOrigin"]
 
-        groundTruths = []
-        nodules = []
+        # read lung and groundTruth image
+        image = serializer.readFromNpy("lung/", "{0}.npy".format(seriesuid))
+        groundTruth = serializer.readFromNpy("groundTruths/", "{0}.npy".format(seriesuid))
+
         reverseFlag = False
         for idx, nodule in fileNodules.iterrows():
             # ground truth
-            groundTruthImage = self.fillGroundTruthImage(groundTruthImage, nodule, worldOrigin, spacing)
-            groundTruthCrop, minusFlag = self.cropSingleNodule(groundTruthImage, nodule, worldOrigin, spacing, size)
-            groundTruths.append(groundTruthCrop)
+            groundTruthCrop, minusFlag = self.cropSingleNodule(groundTruth, nodule, worldOrigin, np.array([1., 1., 1.]), size)
+            serializer.writeToNpy("labels/", "{0}-{1}".format(seriesuid, idx), groundTruthCrop)
 
             # nodule
-            noduleCrop, minusFlag = self.cropSingleNodule(image, nodule, worldOrigin, spacing, size)
-            nodules.append(noduleCrop)
+            noduleCrop, minusFlag = self.cropSingleNodule(image, nodule, worldOrigin, np.array([1., 1., 1.]), size)
+            serializer.writeToNpy("nodules/", "{0}-{1}".format(seriesuid, idx), noduleCrop)
+
             if minusFlag == True:
                 reverseFlag = True
 
-            # TODO : write to nodules/ and labels/
-
         if reverseFlag == True:
             self.logger.warning("cropFileNodule()", "Reversed directions detected in Mhd file: " + file + ".")
-
-        return nodules, groundTruths
 
     def cropAllNoduleForMhdProcessor(self, file):
         if file not in self.annotationDf.file.values:
@@ -249,6 +248,9 @@ class NoduleCropper(object):
         serializer = NoduleSerializer(self.dataPath, self.phase)
         serializer.writeToNpy("resamples/", sample["seriesuid"] + ".npy", sample["image"])
         serializer.writeToNpy("groundTruths/", sample["seriesuid"] + ".npy", sample["groundTruth"])
+
+        meta = {"worldOrigin": worldOrigin, "oldSpacing": oldSpacing, "newSpacing": spacing}
+        serializer.writeToNpy("resample-meta/", sample["seriesuid"] + ".npy", meta)
 
         self.progressBar.update(1)
 
